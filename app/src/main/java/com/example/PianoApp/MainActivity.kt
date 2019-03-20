@@ -15,13 +15,14 @@ import android.os.Build
 import android.media.AudioAttributes
 import android.R.layout.*
 import android.os.Handler
+import com.example.PianoApp.R
 import kotlin.experimental.and
 
 private val TAG = "MyActivity"
 
 class MainActivity : AppCompatActivity() {
 
-    private val duration = 5 // seconds
+    private val duration = 1 // seconds
     private val sampleRate = 44100
     private val numSamples = duration * sampleRate
     private val sample = DoubleArray(numSamples)
@@ -38,15 +39,15 @@ class MainActivity : AppCompatActivity() {
 //            genTone()
 //            handler.post(Runnable { playSound() })
 //        })
-        val tone: ByteArray = genTone(freqOfTone)
 
+        val track: AudioTrack = genTrack(genTone(freqOfTone))
         val r = resources
         val name = packageName
         var ref = findViewById<Button>(r.getIdentifier("b3", "id", name))
         ref.setOnClickListener {
             ref.isSoundEffectsEnabled = false
 //            thread.start()
-            playSound(tone)
+            playSound(track)
         }
     }
 
@@ -69,9 +70,8 @@ class MainActivity : AppCompatActivity() {
         }
         return generatedSnd
     }
-
     @SuppressLint("NewApi")
-    private fun playSound(generatedSnd: ByteArray) {
+    private fun genTrack(generatedSnd: ByteArray): AudioTrack {
         var mAudioTrack: AudioTrack
         // AudioTrack definition
         val mBufferSize = AudioTrack.getMinBufferSize(
@@ -84,7 +84,7 @@ class MainActivity : AppCompatActivity() {
                 .setAudioAttributes(
                     AudioAttributes.Builder()
                         .setUsage(AudioAttributes.USAGE_MEDIA)
-                        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
                         .build()
                 )
                 .setAudioFormat(
@@ -94,6 +94,7 @@ class MainActivity : AppCompatActivity() {
                         .setChannelMask(AudioFormat.CHANNEL_OUT_STEREO)
                         .build()
                 )
+//                .setTransferMode(AudioTrack.MODE_STATIC)
                 .setBufferSizeInBytes(mBufferSize)
                 .build()
             mAudioTrack.setVolume(1.0F)
@@ -101,12 +102,25 @@ class MainActivity : AppCompatActivity() {
             mAudioTrack = AudioTrack(
                 AudioManager.STREAM_MUSIC, 44100,
                 AudioFormat.CHANNEL_OUT_STEREO, AudioFormat.ENCODING_PCM_16BIT,
-                mBufferSize, AudioTrack.MODE_STREAM
+                mBufferSize, AudioTrack.MODE_STATIC
             )
         }
         mAudioTrack.write(generatedSnd, 0, numSamples)
-//        mAudioTrack.setLoopPoints(1,mBufferSize-1, -1)
-        mAudioTrack.play()
+        return mAudioTrack
+    }
+
+
+    private fun playSound(track: AudioTrack) {
+//        track.setLoopPoints(1,mBufferSize, -1)
+        Log.v(TAG, track.playState.toString())
+        if (track.playState > 1){
+
+            track.stop()
+            track.playbackHeadPosition = 0
+            Log.v(TAG, track.playState.toString())
+            Log.v(TAG, track.playbackHeadPosition.toString())
+        }
+        track.play()
     }
 
 }
